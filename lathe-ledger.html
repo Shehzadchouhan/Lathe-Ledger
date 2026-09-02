@@ -1,0 +1,765 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
+<title>Lathe Ledger</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg: #1b1c1e;
+    --surface: #222327;
+    --surface-2: #2b2d31;
+    --border: #3a3c41;
+    --text: #ece9e2;
+    --text-dim: #9a9da4;
+    --copper: #cf9152;
+    --copper-dim: #8a6539;
+    --steel: #7fa3bd;
+    --rust: #c1654c;
+    --sage: #86a982;
+  }
+  *{ box-sizing: border-box; }
+  html,body{ margin:0; padding:0; }
+  body{
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 15px;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+    padding-bottom: 60px;
+  }
+  h1,h2,h3,.label,.btn,.tab{
+    font-family: 'Barlow Condensed', sans-serif;
+  }
+  #app{
+    max-width: 520px;
+    margin: 0 auto;
+    padding: 18px 14px 40px;
+  }
+  header{
+    display:flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    border-bottom: 2px solid var(--border);
+    padding-bottom: 14px;
+    margin-bottom: 16px;
+  }
+  header h1{
+    font-size: 28px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    margin: 0;
+    color: var(--text);
+  }
+  header .sub{
+    font-size: 12px;
+    color: var(--text-dim);
+    margin-top: 2px;
+  }
+  #weekLabelInput{
+    background: none;
+    border: none;
+    border-bottom: 1px dashed var(--border);
+    color: var(--text-dim);
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12px;
+    text-align: right;
+    padding: 2px 0;
+    width: 150px;
+  }
+  #weekLabelInput:focus{ outline:none; border-color: var(--copper); color: var(--text); }
+
+  #storageNotice{
+    background: var(--surface-2);
+    border: 1px solid var(--rust);
+    color: var(--text);
+    font-size: 12.5px;
+    padding: 10px 12px;
+    border-radius: 4px;
+    margin-bottom: 14px;
+  }
+
+  .storage-ok{ color: var(--sage); font-size: 11px; margin-top: 4px; }
+
+  .panel{
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 14px;
+    margin-bottom: 14px;
+  }
+  .panel-title{
+    font-size: 13px;
+    color: var(--text-dim);
+    letter-spacing: 0.4px;
+    margin: 0 0 10px 0;
+  }
+
+  #dayTabs{
+    display: flex;
+    gap: 6px;
+    overflow-x: auto;
+    padding-bottom: 4px;
+    margin-bottom: 14px;
+  }
+  .quick-actions{ display:flex; justify-content:flex-end; margin-top:-6px; margin-bottom:12px; }
+  .summary-focus{ border-color:var(--copper); color:var(--copper); }
+  .summary-panel{ scroll-margin-top:14px; }
+  .summary-panel.highlight{ animation:summaryFlash 1.2s ease-out; }
+  @keyframes summaryFlash{ 0%{ box-shadow:0 0 0 2px var(--copper); } 100%{ box-shadow:0 0 0 0 transparent; } }
+  .tab{
+    flex: 1 0 auto;
+    text-align: center;
+    padding: 9px 4px;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    background: var(--surface);
+    color: var(--text-dim);
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    user-select: none;
+    position: relative;
+  }
+  .tab.active{
+    background: var(--surface-2);
+    color: var(--text);
+    border-color: var(--steel);
+  }
+  .tab .count{
+    display:block;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    color: var(--text-dim);
+    margin-top: 2px;
+  }
+  .tab.active .count{ color: var(--steel); }
+
+  .field-row{ display:flex; gap:8px; margin-bottom:8px; }
+  .field{ flex:1; display:flex; flex-direction:column; gap:4px; }
+  .field label{
+    font-size: 11px;
+    color: var(--text-dim);
+    letter-spacing: 0.3px;
+  }
+  .field input{
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    color: var(--text);
+    padding: 9px 8px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 15px;
+    width: 100%;
+  }
+  .field input:focus{ outline:none; border-color: var(--steel); }
+
+  .btn{
+    display:inline-block;
+    border: none;
+    border-radius: 4px;
+    padding: 11px 14px;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    letter-spacing: 0.3px;
+  }
+  .btn-primary{ background: var(--steel); color: #10181d; width: 100%; }
+  .btn-secondary{ background: var(--surface-2); color: var(--text); border: 1px solid var(--border); }
+  .btn-ghost{ background: none; color: var(--text-dim); border: 1px solid var(--border); font-size: 13px; padding: 6px 10px; }
+  .btn-danger-ghost{ background:none; color: var(--rust); border: 1px solid var(--border); font-size: 13px; padding: 6px 10px; }
+  .btn-full{ width: 100%; margin-top: 4px; }
+
+  #entryList{ display:flex; flex-direction:column; gap:0; }
+  .entry-row{
+    display:flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--border);
+    gap: 10px;
+  }
+  .entry-row:last-child{ border-bottom:none; }
+  .entry-main{ flex:1; min-width:0; }
+  .entry-type{ font-family:'Barlow Condensed',sans-serif; font-size:17px; font-weight:600; color: var(--text); }
+  .entry-meta{ font-size: 12px; color: var(--text-dim); margin-top: 2px; }
+  .entry-amount{
+    text-align:right;
+    white-space: nowrap;
+    color: var(--copper);
+    font-weight: 500;
+    min-width: 80px;
+  }
+  .entry-amount .pcs{ display:block; color: var(--steel); font-size: 12px; }
+  .entry-actions{ display:flex; gap:6px; }
+  .icon-btn{
+    background:none; border:none; color: var(--text-dim); cursor:pointer; font-size:14px; padding:4px;
+    font-family: 'IBM Plex Mono', monospace;
+  }
+  .icon-btn:hover{ color: var(--text); }
+  .empty-note{ color: var(--text-dim); font-size: 13px; padding: 12px 0; text-align:center; }
+
+  .day-total{
+    display:flex; justify-content:space-between; align-items:baseline;
+    margin-top: 10px; padding-top: 10px; border-top: 1px dashed var(--border);
+    font-family: 'Barlow Condensed', sans-serif; font-weight:600; font-size: 15px;
+  }
+  .day-total .val{ font-family:'IBM Plex Mono', monospace; color: var(--copper); }
+
+  .counter-block{
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 16px;
+    display:flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 6px;
+  }
+  .counter-item .k{ font-size: 11px; color: var(--text-dim); letter-spacing: 0.5px; margin-bottom:4px; }
+  .counter-item .v{
+    font-size: 26px;
+    font-weight: 500;
+    letter-spacing: 1px;
+    font-variant-numeric: tabular-nums;
+  }
+  .counter-item .v.pieces{ color: var(--steel); }
+  .counter-item .v.wage{ color: var(--copper); }
+
+  .settle-line{ display:flex; justify-content:space-between; font-size:14px; padding:6px 0; color: var(--text-dim); }
+  .settle-line span.v{ color: var(--text); font-variant-numeric: tabular-nums; }
+  .settle-result{
+    margin-top: 10px;
+    padding: 12px;
+    border-radius: 5px;
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 600;
+    font-size: 16px;
+    display:flex;
+    justify-content: space-between;
+    align-items:center;
+  }
+  .settle-result.owe{ background: rgba(193,101,76,0.15); color: var(--rust); border:1px solid var(--rust); }
+  .settle-result.extra{ background: rgba(134,169,130,0.15); color: var(--sage); border:1px solid var(--sage); }
+  .settle-result.even{ background: var(--surface-2); color: var(--text-dim); border:1px solid var(--border); }
+  .settle-result .amt{ font-family:'IBM Plex Mono', monospace; }
+
+  .history-row{
+    display:flex; justify-content:space-between; align-items:center;
+    padding: 9px 0; border-bottom: 1px solid var(--border); font-size: 13px;
+  }
+  .history-row:last-child{ border-bottom:none; }
+  .history-row .lbl{ color: var(--text-dim); }
+  .history-row .figs{ display:flex; gap:10px; font-variant-numeric: tabular-nums; }
+  .history-row .figs .bal-pos{ color: var(--rust); }
+  .history-row .figs .bal-neg{ color: var(--sage); }
+
+  .summary-row{ display:grid; grid-template-columns: 42px 1fr auto; gap:10px; align-items:center; padding:9px 0; border-bottom:1px solid var(--border); font-size:13px; }
+  .summary-row:last-child{ border-bottom:none; }
+  .summary-day{ font-family:'Barlow Condensed',sans-serif; font-size:17px; font-weight:600; color:var(--text); }
+  .summary-row .muted{ color:var(--text-dim); font-size:12px; }
+  .summary-amount{ color:var(--copper); text-align:right; white-space:nowrap; }
+  .savings-balance{ display:flex; justify-content:space-between; align-items:baseline; margin-bottom:12px; }
+  .savings-balance .amount{ color:var(--sage); font-size:26px; font-weight:500; }
+  .savings-balance .caption{ color:var(--text-dim); font-size:12px; }
+  .savings-actions{ display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:8px; }
+  .btn-save{ color:var(--sage); border-color:var(--sage); }
+  .btn-withdraw{ color:var(--rust); }
+  .goal-line{ color:var(--text-dim); font-size:12px; margin-top:8px; }
+
+  @media (max-width: 420px){
+    .entry-row{ align-items:flex-start; }
+    .entry-amount{ min-width:74px; }
+    .entry-actions{ flex-direction:column; gap:0; }
+    .summary-row{ grid-template-columns:38px 1fr auto; gap:6px; }
+  }
+
+  ::placeholder{ color: #6b6e74; }
+</style>
+</head>
+<body>
+<div id="app">
+
+  <header>
+    <div>
+      <h1>Lathe Ledger</h1>
+      <div class="sub">pieces &amp; wage, day by day</div>
+    </div>
+    <input id="weekLabelInput" type="text" />
+  </header>
+
+  <div id="storageNotice" hidden>
+    This browser cannot save data for this file. Your entries will clear when the page closes.
+  </div>
+  <div class="storage-ok" id="storageStatus">Saved in this browser</div>
+
+  <nav id="dayTabs"></nav>
+  <div class="quick-actions">
+    <button class="btn btn-ghost summary-focus" id="summaryBtn">View summary</button>
+  </div>
+
+  <div class="panel">
+    <p class="panel-title">ADD ENTRY — <span id="activeDayName">Mon</span></p>
+    <div class="field-row">
+      <div class="field">
+        <label for="f-type">Type / variety</label>
+        <input id="f-type" list="typeSuggestions" placeholder="e.g. Flange" />
+        <datalist id="typeSuggestions"></datalist>
+      </div>
+      <div class="field">
+        <label for="f-size">Size (in)</label>
+        <input id="f-size" placeholder="e.g. 2" inputmode="decimal" />
+      </div>
+    </div>
+    <div class="field-row">
+      <div class="field">
+        <label for="f-pieces">Pieces</label>
+        <input id="f-pieces" type="number" min="0" placeholder="e.g. 200" inputmode="numeric" />
+      </div>
+      <div class="field">
+        <label for="f-rate">Rate (₹/pc)</label>
+        <input id="f-rate" type="number" min="0" step="0.01" placeholder="e.g. 0.70" inputmode="decimal" />
+      </div>
+    </div>
+    <button class="btn btn-primary btn-full" id="addBtn">Add entry</button>
+  </div>
+
+  <div class="panel">
+    <p class="panel-title">ENTRIES — <span id="activeDayName2">Mon</span></p>
+    <div id="entryList"></div>
+    <div class="day-total">
+      <span>Day total</span>
+      <span class="val" id="dayTotalVal">0 pcs · ₹0.00</span>
+    </div>
+  </div>
+
+  <div class="panel summary-panel" id="summaryPanel">
+    <p class="panel-title">WEEKLY SUMMARY</p>
+    <div id="summaryList"></div>
+  </div>
+
+  <div class="panel">
+    <p class="panel-title">WEEK TOTAL</p>
+    <div class="counter-block">
+      <div class="counter-item">
+        <div class="k">PIECES</div>
+        <div class="v pieces" id="weekPieces">0</div>
+      </div>
+      <div class="counter-item">
+        <div class="k">WAGE</div>
+        <div class="v wage" id="weekWage">₹0.00</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <p class="panel-title">SAVINGS</p>
+    <div class="savings-balance">
+      <span class="caption">Saved this week</span>
+      <span class="amount" id="savingsBalance">₹0.00</span>
+    </div>
+    <div class="field-row">
+      <div class="field">
+        <label for="f-savings">Amount (₹)</label>
+        <input id="f-savings" type="number" min="0" step="0.01" placeholder="e.g. 500" inputmode="decimal" />
+      </div>
+      <div class="field">
+        <label for="f-goal">Target (₹)</label>
+        <input id="f-goal" type="number" min="0" step="0.01" placeholder="Optional" inputmode="decimal" />
+      </div>
+    </div>
+    <div class="savings-actions">
+      <button class="btn btn-secondary btn-save" id="depositBtn">＋ Save money</button>
+      <button class="btn btn-secondary btn-withdraw" id="withdrawBtn">－ Withdraw</button>
+    </div>
+    <div class="goal-line" id="savingsGoal">No savings target set</div>
+  </div>
+
+  <div class="panel">
+    <p class="panel-title">CASH SETTLEMENT</p>
+    <div class="settle-line"><span>Carried in from last week</span><span class="v" id="carryInVal">₹0.00</span></div>
+    <div class="settle-line"><span>This week's wage</span><span class="v" id="weekWage2">₹0.00</span></div>
+    <div class="settle-line" style="border-top:1px dashed var(--border); padding-top:8px; margin-top:2px;"><span>Total due</span><span class="v" id="totalDueVal">₹0.00</span></div>
+    <div class="field" style="margin-top:8px;">
+      <label for="f-given">Amount given to you (₹)</label>
+      <input id="f-given" type="number" min="0" step="0.01" placeholder="e.g. 2000" inputmode="decimal" />
+    </div>
+    <div class="settle-result even" id="settleResult">
+      <span>Settled evenly</span><span class="amt">₹0.00</span>
+    </div>
+    <button class="btn btn-secondary btn-full" id="newWeekBtn" style="margin-top:10px;">Finish week &amp; start new</button>
+  </div>
+
+  <div class="panel" id="historyPanel" hidden>
+    <p class="panel-title">PAST WEEKS</p>
+    <div id="historyList"></div>
+  </div>
+
+</div>
+
+<script>
+const DAYS = ['Mon','Tue','Wed','Thu','Fri','Sat'];
+const STORAGE_KEY = 'lathe-ledger-state-v1';
+
+let storageAvailable = true;
+let state = {
+  weekLabel: defaultWeekLabel(),
+  entries: [],
+  amountGiven: '',
+  carryIn: 0,
+  rateBook: {},
+  history: [],
+  savings: 0,
+  savingsGoal: 0
+};
+let activeDay = 'Mon';
+let editingId = null;
+
+function defaultWeekLabel(){
+  const d = new Date();
+  const opts = { month: 'short', day: 'numeric' };
+  return 'Week of ' + d.toLocaleDateString('en-IN', opts);
+}
+
+function fmtMoney(n){
+  const v = (Math.round((n + Number.EPSILON) * 100) / 100);
+  return '₹' + v.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+function fmtPieces(n){
+  return n.toLocaleString('en-IN');
+}
+function genId(){ return Date.now().toString(36) + Math.random().toString(36).slice(2,7); }
+
+async function saveState(){
+  if(!storageAvailable) return;
+  try{
+    const value = JSON.stringify(state);
+    if(typeof window.storage !== 'undefined'){
+      await window.storage.set(STORAGE_KEY, value, false);
+    } else {
+      localStorage.setItem(STORAGE_KEY, value);
+    }
+  }catch(e){
+    storageAvailable = false;
+    document.getElementById('storageNotice').hidden = false;
+    document.getElementById('storageStatus').hidden = true;
+    console.error('Save failed', e);
+  }
+}
+
+async function loadState(){
+  try{
+    let value = null;
+    if(typeof window.storage !== 'undefined'){
+      const res = await window.storage.get(STORAGE_KEY, false);
+      value = res && res.value;
+    } else {
+      value = localStorage.getItem(STORAGE_KEY);
+    }
+    if(value){
+      state = Object.assign(state, JSON.parse(value));
+    }
+  }catch(e){
+    storageAvailable = false;
+    document.getElementById('storageNotice').hidden = false;
+    document.getElementById('storageStatus').hidden = true;
+  }
+}
+
+function entriesForDay(day){
+  return state.entries.filter(e => e.day === day);
+}
+function weekTotals(){
+  let pieces = 0, wage = 0;
+  state.entries.forEach(e => { pieces += e.pieces; wage += e.pieces * e.rate; });
+  return { pieces, wage };
+}
+function dayTotals(day){
+  let pieces = 0, wage = 0;
+  entriesForDay(day).forEach(e => { pieces += e.pieces; wage += e.pieces * e.rate; });
+  return { pieces, wage };
+}
+
+function renderSummary(){
+  const list = document.getElementById('summaryList');
+  list.innerHTML = '';
+  let runningPieces = 0, runningWage = 0;
+  DAYS.forEach(day => {
+    const totals = dayTotals(day);
+    runningPieces += totals.pieces;
+    runningWage += totals.wage;
+    const row = document.createElement('div');
+    row.className = 'summary-row';
+    row.innerHTML =
+      '<span class="summary-day">' + day + '</span>' +
+      '<span class="muted">' + fmtPieces(totals.pieces) + ' pcs · ' + fmtMoney(totals.wage) + '<br>running: ' + fmtPieces(runningPieces) + ' pcs</span>' +
+      '<span class="summary-amount">' + fmtMoney(runningWage) + '</span>';
+    list.appendChild(row);
+  });
+}
+
+function renderTabs(){
+  const nav = document.getElementById('dayTabs');
+  nav.innerHTML = '';
+  DAYS.forEach(day => {
+    const t = dayTotals(day);
+    const btn = document.createElement('div');
+    btn.className = 'tab' + (day === activeDay ? ' active' : '');
+    btn.innerHTML = day + '<span class="count">' + (t.pieces || 0) + ' pcs</span>';
+    btn.onclick = () => { activeDay = day; editingId = null; clearForm(); renderAll(); };
+    nav.appendChild(btn);
+  });
+}
+
+function clearForm(){
+  document.getElementById('f-type').value = '';
+  document.getElementById('f-size').value = '';
+  document.getElementById('f-pieces').value = '';
+  document.getElementById('f-rate').value = '';
+  document.getElementById('addBtn').textContent = 'Add entry';
+}
+
+function renderTypeSuggestions(){
+  const dl = document.getElementById('typeSuggestions');
+  dl.innerHTML = '';
+  Object.keys(state.rateBook).forEach(t => {
+    const opt = document.createElement('option');
+    opt.value = t;
+    dl.appendChild(opt);
+  });
+}
+
+function renderEntryList(){
+  document.getElementById('activeDayName').textContent = activeDay;
+  document.getElementById('activeDayName2').textContent = activeDay;
+  const list = document.getElementById('entryList');
+  list.innerHTML = '';
+  const items = entriesForDay(activeDay);
+  if(items.length === 0){
+    list.innerHTML = '<div class="empty-note">No entries yet for ' + activeDay + '.</div>';
+  } else {
+    items.forEach(e => {
+      const row = document.createElement('div');
+      row.className = 'entry-row';
+      row.innerHTML =
+        '<div class="entry-main">' +
+          '<div class="entry-type">' + escapeHtml(e.type || 'Untitled') + '</div>' +
+          '<div class="entry-meta">' + (e.size ? e.size + '" · ' : '') + '₹' + Number(e.rate).toFixed(2) + '/pc</div>' +
+        '</div>' +
+        '<div class="entry-amount">' + fmtMoney(e.pieces * e.rate) + '<span class="pcs">' + e.pieces + ' pcs</span></div>' +
+        '<div class="entry-actions">' +
+          '<button class="icon-btn" data-act="edit" data-id="' + e.id + '">Edit</button>' +
+          '<button class="icon-btn" data-act="del" data-id="' + e.id + '">✕</button>' +
+        '</div>';
+      list.appendChild(row);
+    });
+    list.querySelectorAll('[data-act="edit"]').forEach(b => b.onclick = () => startEdit(b.dataset.id));
+    list.querySelectorAll('[data-act="del"]').forEach(b => b.onclick = () => deleteEntry(b.dataset.id));
+  }
+  const dt = dayTotals(activeDay);
+  document.getElementById('dayTotalVal').textContent = fmtPieces(dt.pieces) + ' pcs · ' + fmtMoney(dt.wage);
+}
+
+function escapeHtml(s){
+  return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+function startEdit(id){
+  const e = state.entries.find(x => x.id === id);
+  if(!e) return;
+  editingId = id;
+  document.getElementById('f-type').value = e.type;
+  document.getElementById('f-size').value = e.size;
+  document.getElementById('f-pieces').value = e.pieces;
+  document.getElementById('f-rate').value = e.rate;
+  document.getElementById('addBtn').textContent = 'Save changes';
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function deleteEntry(id){
+  state.entries = state.entries.filter(x => x.id !== id);
+  if(editingId === id){ editingId = null; clearForm(); }
+  saveState();
+  renderAll();
+}
+
+function addOrSaveEntry(){
+  const type = document.getElementById('f-type').value.trim();
+  const size = document.getElementById('f-size').value.trim();
+  const pieces = parseFloat(document.getElementById('f-pieces').value);
+  const rate = parseFloat(document.getElementById('f-rate').value);
+
+  if(!type || isNaN(pieces) || pieces <= 0 || isNaN(rate) || rate < 0){
+    alert('Enter a type, pieces, and rate to add this entry.');
+    return;
+  }
+
+  if(editingId){
+    const e = state.entries.find(x => x.id === editingId);
+    if(e){ e.type = type; e.size = size; e.pieces = pieces; e.rate = rate; }
+    editingId = null;
+  } else {
+    state.entries.push({ id: genId(), day: activeDay, type, size, pieces, rate });
+  }
+  state.rateBook[type.toLowerCase()] = rate;
+
+  clearForm();
+  saveState();
+  renderAll();
+}
+
+function computeSettlement(){
+  const wk = weekTotals();
+  const carryIn = Number(state.carryIn) || 0;
+  const totalDue = wk.wage + carryIn;
+  const given = parseFloat(state.amountGiven);
+  const givenNum = isNaN(given) ? 0 : given;
+  const balance = totalDue - givenNum;
+  return { wk, carryIn, totalDue, givenNum, balance };
+}
+
+function renderWeekAndSettlement(){
+  const wk = weekTotals();
+  document.getElementById('weekPieces').textContent = fmtPieces(wk.pieces);
+  document.getElementById('weekWage').textContent = fmtMoney(wk.wage);
+  document.getElementById('weekWage2').textContent = fmtMoney(wk.wage);
+
+  const s = computeSettlement();
+  document.getElementById('carryInVal').textContent = fmtMoney(s.carryIn);
+  document.getElementById('totalDueVal').textContent = fmtMoney(s.totalDue);
+
+  const resultEl = document.getElementById('settleResult');
+  if(Math.abs(s.balance) < 0.005){
+    resultEl.className = 'settle-result even';
+    resultEl.innerHTML = '<span>Settled evenly</span><span class="amt">₹0.00</span>';
+  } else if(s.balance > 0){
+    resultEl.className = 'settle-result owe';
+    resultEl.innerHTML = '<span>Balance to receive</span><span class="amt">' + fmtMoney(s.balance) + '</span>';
+  } else {
+    resultEl.className = 'settle-result extra';
+    resultEl.innerHTML = '<span>Extra received (carry forward)</span><span class="amt">' + fmtMoney(Math.abs(s.balance)) + '</span>';
+  }
+}
+
+function renderSavings(){
+  const savings = Number(state.savings) || 0;
+  const goal = Number(state.savingsGoal) || 0;
+  document.getElementById('savingsBalance').textContent = fmtMoney(savings);
+  document.getElementById('f-goal').value = goal || '';
+  document.getElementById('savingsGoal').textContent = goal > 0
+    ? fmtMoney(Math.max(goal - savings, 0)) + ' left to reach ' + fmtMoney(goal)
+    : 'No savings target set';
+}
+
+function renderHistory(){
+  const panel = document.getElementById('historyPanel');
+  const list = document.getElementById('historyList');
+  if(!state.history || state.history.length === 0){ panel.hidden = true; return; }
+  panel.hidden = false;
+  list.innerHTML = '';
+  state.history.slice().reverse().forEach(h => {
+    const row = document.createElement('div');
+    row.className = 'history-row';
+    const balClass = h.balance > 0 ? 'bal-pos' : (h.balance < 0 ? 'bal-neg' : '');
+    const balText = Math.abs(h.balance) < 0.005 ? 'even' : (h.balance > 0 ? fmtMoney(h.balance) + ' owed' : fmtMoney(Math.abs(h.balance)) + ' extra');
+    row.innerHTML =
+      '<span class="lbl">' + escapeHtml(h.weekLabel) + '</span>' +
+      '<span class="figs"><span>' + fmtPieces(h.pieces) + ' pcs</span><span>' + fmtMoney(h.wage) + '</span><span class="' + balClass + '">' + balText + '</span></span>';
+    list.appendChild(row);
+  });
+}
+
+function renderAll(){
+  renderTabs();
+  renderTypeSuggestions();
+  renderEntryList();
+  renderSummary();
+  renderWeekAndSettlement();
+  renderSavings();
+  renderHistory();
+  document.getElementById('weekLabelInput').value = state.weekLabel;
+  document.getElementById('f-given').value = state.amountGiven;
+}
+
+function startNewWeek(){
+  const s = computeSettlement();
+  if(s.wk.pieces === 0 && s.givenNum === 0){
+    if(!confirm('No entries recorded this week. Start a new week anyway?')) return;
+  } else {
+    if(!confirm('Finish "' + state.weekLabel + '" and start a new week? This will archive it and clear entries.')) return;
+  }
+  state.history.push({
+    weekLabel: state.weekLabel,
+    pieces: s.wk.pieces,
+    wage: s.wk.wage,
+    given: s.givenNum,
+    carryIn: s.carryIn,
+    balance: s.balance
+  });
+  state.carryIn = s.balance;
+  state.entries = [];
+  state.amountGiven = '';
+  state.weekLabel = defaultWeekLabel();
+  activeDay = 'Mon';
+  saveState();
+  renderAll();
+}
+
+document.getElementById('addBtn').addEventListener('click', addOrSaveEntry);
+document.getElementById('summaryBtn').addEventListener('click', () => {
+  const panel = document.getElementById('summaryPanel');
+  panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  panel.classList.remove('highlight');
+  requestAnimationFrame(() => panel.classList.add('highlight'));
+});
+document.getElementById('newWeekBtn').addEventListener('click', startNewWeek);
+document.getElementById('f-given').addEventListener('input', (e) => {
+  state.amountGiven = e.target.value;
+  saveState();
+  renderWeekAndSettlement();
+});
+document.getElementById('f-goal').addEventListener('input', (e) => {
+  state.savingsGoal = Math.max(0, parseFloat(e.target.value) || 0);
+  saveState();
+  renderSavings();
+});
+document.getElementById('depositBtn').addEventListener('click', () => {
+  const amount = parseFloat(document.getElementById('f-savings').value);
+  if(!amount || amount <= 0){ alert('Enter a savings amount first.'); return; }
+  state.savings = (Number(state.savings) || 0) + amount;
+  document.getElementById('f-savings').value = '';
+  saveState();
+  renderSavings();
+});
+document.getElementById('withdrawBtn').addEventListener('click', () => {
+  const amount = parseFloat(document.getElementById('f-savings').value);
+  if(!amount || amount <= 0){ alert('Enter an amount to withdraw.'); return; }
+  if(amount > (Number(state.savings) || 0)){ alert('Withdrawal cannot be more than your savings.'); return; }
+  state.savings -= amount;
+  document.getElementById('f-savings').value = '';
+  saveState();
+  renderSavings();
+});
+document.getElementById('weekLabelInput').addEventListener('input', (e) => {
+  state.weekLabel = e.target.value;
+  saveState();
+});
+document.getElementById('f-type').addEventListener('change', (e) => {
+  const key = e.target.value.trim().toLowerCase();
+  const rateField = document.getElementById('f-rate');
+  if(key && state.rateBook[key] !== undefined && !rateField.value){
+    rateField.value = state.rateBook[key];
+  }
+});
+
+(async function(){
+  await loadState();
+  renderAll();
+})();
+</script>
+</body>
+</html>
