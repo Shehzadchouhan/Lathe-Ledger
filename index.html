@@ -60,6 +60,13 @@
     color: var(--text-dim);
     margin-top: 2px;
   }
+  .workplace-controls{ display:flex; align-items:center; gap:6px; margin-top:8px; }
+  #workplaceSelect{
+    background:var(--surface-2); border:1px solid var(--border); border-radius:4px;
+    color:var(--text); font-family:'IBM Plex Mono',monospace; font-size:12px; padding:5px 6px; max-width:150px;
+  }
+  .workplace-btn{ background:none; border:1px solid var(--border); border-radius:4px; color:var(--text-dim); cursor:pointer; padding:5px 7px; font-family:'IBM Plex Mono',monospace; font-size:11px; }
+  .workplace-btn:hover{ color:var(--text); border-color:var(--steel); }
   #weekLabelInput{
     background: none;
     border: none;
@@ -288,6 +295,10 @@
     <div>
       <h1>Lathe Ledger</h1>
       <div class="sub">pieces &amp; wage, day by day</div>
+      <div class="workplace-controls">
+        <select id="workplaceSelect" aria-label="Workplace"></select>
+        <button class="workplace-btn" id="newWorkplaceBtn">＋ New workplace</button>
+      </div>
     </div>
     <input id="weekLabelInput" type="text" />
   </header>
@@ -296,6 +307,17 @@
     This browser cannot save data for this file. Your entries will clear when the page closes.
   </div>
   <div class="storage-ok" id="storageStatus">Saved in this browser</div>
+
+  <div class="panel" id="newWorkplacePanel" hidden>
+    <p class="panel-title">NEW WORKPLACE</p>
+    <div class="field-row">
+      <div class="field">
+        <label for="newWorkplaceName">Workplace name</label>
+        <input id="newWorkplaceName" placeholder="e.g. New workshop">
+      </div>
+    </div>
+    <button class="btn btn-primary btn-full" id="createWorkplaceBtn">Open workplace</button>
+  </div>
 
   <nav id="dayTabs"></nav>
   <div class="quick-actions">
@@ -416,6 +438,8 @@ let state = {
   savings: 0,
   savingsGoal: 0
 };
+let workplaces = [];
+let activeWorkplaceId = '';
 let activeDay = 'Mon';
 let editingId = null;
 
@@ -437,7 +461,8 @@ function genId(){ return Date.now().toString(36) + Math.random().toString(36).sl
 async function saveState(){
   if(!storageAvailable) return;
   try{
-    const value = JSON.stringify(state);
+    saveActiveWorkplace();
+    const value = JSON.stringify({ activeWorkplaceId, workplaces });
     if(typeof window.storage !== 'undefined'){
       await window.storage.set(STORAGE_KEY, value, false);
     } else {
@@ -461,13 +486,75 @@ async function loadState(){
       value = localStorage.getItem(STORAGE_KEY);
     }
     if(value){
-      state = Object.assign(state, JSON.parse(value));
+      const loaded = JSON.parse(value);
+      if(loaded.workplaces){
+        workplaces = loaded.workplaces;
+        activeWorkplaceId = loaded.activeWorkplaceId || workplaces[0].id;
+        state = Object.assign(state, getActiveWorkplace().data);
+      } else {
+        state = Object.assign(state, loaded);
+        workplaces = [{ id: genId(), name: 'Main workplace', data: state }];
+        activeWorkplaceId = workplaces[0].id;
+        await saveState();
+      }
+    }
+    if(workplaces.length === 0){
+      workplaces = [{ id: genId(), name: 'Main workplace', data: state }];
+      activeWorkplaceId = workplaces[0].id;
+      await saveState();
     }
   }catch(e){
     storageAvailable = false;
     document.getElementById('storageNotice').hidden = false;
     document.getElementById('storageStatus').hidden = true;
   }
+}
+
+function getActiveWorkplace(){
+  return workplaces.find(workplace => workplace.id === activeWorkplaceId) || workplaces[0];
+}
+
+function saveActiveWorkplace(){
+  const workplace = getActiveWorkplace();
+  if(workplace) workplace.data = state;
+}
+
+function renderWorkplaceControls(){
+  const select = document.getElementById('workplaceSelect');
+  select.innerHTML = workplaces.map(workplace => '<option value="' + workplace.id + '">' + escapeHtml(workplace.name) + '</option>').join('');
+  select.value = activeWorkplaceId;
+}
+
+function switchWorkplace(id){
+  saveActiveWorkplace();
+  const workplace = workplaces.find(item => item.id === id);
+  if(!workplace) return;
+  activeWorkplaceId = id;
+  state = Object.assign({}, workplace.data);
+  activeDay = 'Mon';
+  editingId = null;
+  clearForm();
+  saveState();
+  renderAll();
+}
+
+function createWorkplace(){
+  const name = document.getElementById('newWorkplaceName').value.trim();
+  if(!name){ alert('Enter a workplace name.'); return; }
+  const workplace = { id: genId(), name, data: JSON.parse(JSON.stringify({
+    weekLabel: defaultWeekLabel(), entries: [], amountGiven: '', carryIn: 0,
+    rateBook: {}, history: [], savings: 0, savingsGoal: 0
+  })) };
+  saveActiveWorkplace();
+  workplaces.push(workplace);
+  activeWorkplaceId = workplace.id;
+  state = Object.assign({}, workplace.data);
+  activeDay = 'Mon';
+  editingId = null;
+  document.getElementById('newWorkplaceName').value = '';
+  document.getElementById('newWorkplacePanel').hidden = true;
+  saveState();
+  renderAll();
 }
 
 function entriesForDay(day){
@@ -674,6 +761,7 @@ function renderHistory(){
 }
 
 function renderAll(){
+  renderWorkplaceControls();
   renderTabs();
   renderTypeSuggestions();
   renderEntryList();
@@ -710,6 +798,13 @@ function startNewWeek(){
 }
 
 document.getElementById('addBtn').addEventListener('click', addOrSaveEntry);
+document.getElementById('newWorkplaceBtn').addEventListener('click', () => {
+  const panel = document.getElementById('newWorkplacePanel');
+  panel.hidden = !panel.hidden;
+  if(!panel.hidden) document.getElementById('newWorkplaceName').focus();
+});
+document.getElementById('createWorkplaceBtn').addEventListener('click', createWorkplace);
+document.getElementById('workplaceSelect').addEventListener('change', (e) => switchWorkplace(e.target.value));
 document.getElementById('summaryBtn').addEventListener('click', () => {
   const panel = document.getElementById('summaryPanel');
   panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
